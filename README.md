@@ -1,0 +1,645 @@
+# TimeCheck
+
+TimeCheck is a personal time-management library that stores your data in tab-separated (TSV) files. You organize work into **areas**, **projects**, and **tasks**, then record what you actually did in a **log**. A **timesheet** tracks daily rollups by area.
+
+The Python API adds **triggers** (automatic rollups across tables), **metrics** (time spent per task, project, or area), and **alerts** (weekly hour-limit warnings). When you add, update, or delete rows through that API, related tables stay in sync—for example, a new log entry adds duration to the matching task, project, and area, and can update the timesheet and fire threshold alerts.
+
+All data lives on disk under a single folder (your profile), so you can edit files directly or use the Python API.
+
+## Requirements
+
+- Python 3.10+
+- [pandas](https://pandas.pydata.org/)
+
+```bash
+pip install pandas
+```
+
+To use the library from this repo, add `src` to your Python path or run scripts from the project root:
+
+```bash
+cd TimeCheck
+python -c "from timecheck import TimeCheck; tc = TimeCheck(name='Amanda'); print(tc.config)"
+```
+
+## How the data fits together
+
+```
+areas          (PhD, Business, Personal, ...)
+  └── projects   (Genome-Scale SPARCED, Gel Manufacturing, ...)
+        └── tasks  (Install BNGSim, Write methods, ...)
+              └── log  (timestamped work sessions for a task)
+```
+
+| Table       | File            | Purpose                                      |
+|-------------|-----------------|----------------------------------------------|
+| `areas`     | `areas.tsv`     | Top-level life/work categories               |
+| `projects`  | `projects.tsv`  | Projects within an area                      |
+| `tasks`     | `tasks.tsv`     | Action items tied to a project               |
+| `log`       | `log.tsv`       | Start/stop timestamps for individual tasks   |
+| `timesheet` | `timesheet.tsv` | Daily hour totals (e.g. PhD vs Business)     |
+
+Each table is a TSV file with a fixed set of columns. Missing values are stored as empty strings.
+
+## Create your profile
+
+A profile is a data directory plus a small `config.json` file. On first use, TimeCheck creates both automatically.
+
+### Option 1: Default location (development)
+
+By default, data is stored in `src/data/` (next to the package). This is convenient for development, but **personal data should not be committed to git**—`src/data/` is listed in `.gitignore` for that reason.
+
+```python
+from timecheck import TimeCheck
+
+tc = TimeCheck(name="Amanda")
+```
+
+This creates (if they do not already exist):
+
+```
+src/data/
+  config.json
+  areas.tsv
+  projects.tsv
+  tasks.tsv
+  log.tsv
+  timesheet.tsv
+```
+
+### Option 2: Cloud-synced folder (recommended for personal use)
+
+Point your profile at a folder inside a synced cloud drive so your TSV files back up across devices without publishing them to a git host. TimeCheck only reads and writes plain files—the sync client (OneDrive, iCloud Drive, Google Drive, Dropbox, etc.) handles replication.
+
+**Do not use a public git repository for personal time-tracking data.** Logs and task notes can contain names, meeting details, and other private information.
+
+#### One-time setup
+
+Pick a folder inside your synced drive and register it under your profile name. TimeCheck stores that mapping **locally on your machine** (not in the cloud data folder), so later sessions can find your data without passing `data_root` again.
+
+```python
+from pathlib import Path
+from timecheck import TimeCheck
+
+# Windows + OneDrive example
+data_dir = Path.home() / "OneDrive" / "TimeCheck"
+tc = TimeCheck(data_root=data_dir, name="Amanda")
+
+# macOS + iCloud Drive example
+# data_dir = Path.home() / "Library" / "Mobile Documents" / "com~apple~CloudDocs" / "TimeCheck"
+
+# Any local folder works too
+# data_dir = Path.home() / "Downloads" / "TimeCheck"
+# tc = TimeCheck(data_root=data_dir, name="Amanda")
+```
+
+The first call with both `data_root` and `name` registers the location. After that, open the same profile with just the name:
+
+```python
+tc = TimeCheck(name="Amanda")  # resolves to your registered folder
+print(tc.data_root)
+```
+
+You can also register or change a location without creating files yet:
+
+```python
+TimeCheck.register_profile("Amanda", Path.home() / "Downloads" / "TimeCheck")
+tc = TimeCheck(name="Amanda")
+```
+
+#### Where the registry is stored
+
+Profile mappings live in a small local JSON file on your computer:
+
+| OS      | Registry location                                      |
+|---------|--------------------------------------------------------|
+| Windows | `%APPDATA%\TimeCheck\profiles.json`                  |
+| macOS/Linux | `~/.timecheck/profiles.json`                     |
+
+Inspect or manage registrations:
+
+```python
+TimeCheck.list_profiles()
+TimeCheck.profile_path("Amanda")
+TimeCheck.profile_registry_path()
+TimeCheck.unregister_profile("Amanda")
+```
+
+Pass `register=False` to `TimeCheck(...)` if you want a one-off session without updating the saved mapping.
+
+### Profile settings (`config.json`)
+
+| Key                            | Description                                                      | Default |
+|--------------------------------|------------------------------------------------------------------|---------|
+| `name`                         | Your display name                                                | `""`    |
+| `default_log_duration_minutes` | Default session length when stop time is omitted                 | `15`    |
+| `timesheet_areas`              | Area names to include in automatic daily timesheet rollups         | `[]`    |
+
+Set the name when creating the instance, or update settings later:
+
+```python
+tc = TimeCheck(name="Amanda")
+
+tc.update_config(default_log_duration_minutes=30)
+print(tc.config["name"])  # Amanda
+```
+
+## Typical setup workflow
+
+Build your hierarchy from the top down: **areas → projects → tasks**. Then log time against task names.
+
+### 1. Add areas
+
+Areas are broad categories (PhD, Business, Personal, Sleep, etc.).
+
+```python
+tc.add("areas", {
+    "area": "PhD",
+    "time log": "0:00:00",
+    "Max Weekly Hours": "28",
+    "Alert": "TRUE",
+})
+
+tc.add("areas", {
+    "area": "Business",
+    "time log": "0:00:00",
+    "Max Weekly Hours": "8",
+    "Alert": "FALSE",
+})
+
+tc.save("areas")
+```
+
+**Columns:** `area`, `time log`, `Max Weekly Hours`, `Alert`
+
+The `area` value is the primary key—each area name must be unique.
+
+### 2. Add projects
+
+Every project belongs to one area.
+
+```python
+tc.add("projects", {
+    "project": "Thesis Writing",
+    "time log": "0:00:00",
+    "max weekly hours": "10",
+    "due date": "12/31/2026",
+    "#tasks": "0",
+    "area": "PhD",
+    "status": "In Progress",
+})
+
+tc.save("projects")
+```
+
+**Columns:** `project`, `time log`, `max weekly hours`, `due date`, `#tasks`, `area`, `status`
+
+Common `status` values: `Not Started`, `In Progress`, `Complete`.
+
+The `project` name is the primary key. The `area` field should match an existing row in `areas.tsv`.
+
+### 3. Add tasks
+
+Tasks are the units you actually log time against. The `task` name must exactly match what you pass to `log_entry()`.
+
+```python
+tc.add("tasks", {
+    "task": "Draft chapter 1 outline",
+    "project": "Thesis Writing",
+    "details": "Focus on methods section first",
+    "priority": "1",
+    "time log": "0:00:00",
+    "status": "Not Started",
+    "Anticipated Time": "",
+    "start date": "6/13/2026",
+    "due date": "6/20/2026",
+    "point of contact": "",
+    "last update": "",
+    "completed on": "",
+})
+
+tc.save("tasks")
+```
+
+**Columns:** `task`, `project`, `details`, `priority`, `time log`, `status`, `Anticipated Time`, `start date`, `due date`, `point of contact`, `last update`, `completed on`
+
+The `task` name is the primary key. The `project` field should match an existing row in `projects.tsv`.
+
+### 4. Log work sessions
+
+Use `log_entry()` for the common case—it fills in dates, times, and duration for you:
+
+```python
+from datetime import datetime
+
+# Log 15 minutes of work (default duration) starting now
+tc.log_entry("Draft chapter 1 outline")
+
+# Log a specific time range
+tc.log_entry(
+    "Draft chapter 1 outline",
+    date=datetime(2026, 6, 13),
+    start=datetime(2026, 6, 13, 9, 0),
+    stop=datetime(2026, 6, 13, 10, 30),
+    notes="Finished section 1.1",
+)
+
+tc.save("log")
+```
+
+**Log columns:** `date`, `task`, `start`, `stop`, `total`, `notes`
+
+**Date/time formats used by the API:**
+
+| Field   | Format example              |
+|---------|-----------------------------|
+| `date`  | `6/13/2026`                 |
+| `start` | `6/13/2026 9:00:00AM`       |
+| `stop`  | `6/13/2026 10:30:00AM`      |
+| `total` | `1:30:00` (hours:minutes:seconds) |
+
+If you omit `stop`, the session length defaults to `default_log_duration_minutes` from your config.
+
+**Automatic rollups:** `log_entry()` routes through `tc.add("log", ...)`, so triggers run immediately. The session `total` is added to the matching task's `time log`, then propagated to that task's project and area. If the project's area is listed in `timesheet_areas`, the timesheet row for that `date` is created or updated as well.
+
+You can also append log rows manually:
+
+```python
+tc.add("log", {
+    "date": "6/13/2026",
+    "task": "Draft chapter 1 outline",
+    "start": "6/13/2026 9:00:00AM",
+    "stop": "6/13/2026 9:30:00AM",
+    "total": "0:30:00",
+    "notes": "",
+})
+```
+
+### 5. Configure the timesheet
+
+The timesheet stores daily rollups per area, plus a daily total and a rolling 7-day total. By default, **no areas** are included in automatic rollups (`timesheet_areas` is empty). Log entries still update tasks, projects, and areas, but the timesheet is left alone until you opt in.
+
+Choose which areas appear on the timesheet:
+
+```python
+tc.set_timesheet_areas(["PhD", "Business"])
+tc.save("timesheet")  # persist rebuilt columns and config
+```
+
+This saves your selection to `config.json`, rebuilds timesheet columns, and enables automatic updates on future log entries. Each selected area gets a `{area} time` column (for example, `PhD time`).
+
+**Default columns** (after calling `set_timesheet_areas`):
+
+`Date`, `{area} time` (one per selected area), `Total Work Hours`, `7-Day Total`, `Day of week`
+
+When a log entry is recorded for a task whose project belongs to a selected area, triggers:
+
+- Create a timesheet row for that `date` if one does not exist
+- Add the session duration to the matching `{area} time` column
+- Recompute `Total Work Hours` (sum of selected areas for that day)
+- Recompute `7-Day Total` (sum of `Total Work Hours` over the last 7 days, including the current date)
+- Set `Day of week` from the date
+
+Only log entries recorded **after** you call `set_timesheet_areas` are rolled into the timesheet. Earlier sessions still update tasks, projects, and areas, but are not backfilled into the timesheet.
+
+You can still add or edit timesheet rows manually if needed:
+
+```python
+tc.add("timesheet", {
+    "Date": "6/13/2026",
+    "PhD time": "4:30:00",
+    "Business time": "1:00:00",
+    "Total Work Hours": "5:30:00",
+    "7-Day Total": "5:30:00",
+    "Day of week": "Saturday",
+})
+```
+
+## Reading and updating data
+
+### Load tables
+
+```python
+# Reload from disk
+tc.load("tasks")
+
+# Get a pandas DataFrame
+df = tc.load("log")
+print(df.head())
+
+# Or use table properties
+print(tc.tasks.df)
+```
+
+### Look up rows
+
+Tables with a primary key can be fetched by key; all tables support row index:
+
+```python
+row = tc.get("tasks", key="Draft chapter 1 outline")
+row = tc.get("log", index=0)  # log has no primary key
+```
+
+### Search
+
+```python
+in_progress = tc.find("tasks", status="In Progress")
+phd_projects = tc.find("projects", area="PhD")
+```
+
+### Update and delete
+
+```python
+tc.update("tasks", key="Draft chapter 1 outline", status="Complete", **{
+    "completed on": "6/13/2026",
+    "last update": "6/13/2026",
+})
+
+tc.delete("tasks", key="Old task name")
+
+tc.save("tasks")
+```
+
+### Save everything
+
+```python
+tc.save()  # writes all tables
+```
+
+Changes are held in memory until you call `save()` (or `save("table_name")`).
+
+## Triggers
+
+Triggers fire when you mutate data through `TimeCheck.add()`, `TimeCheck.update()`, and `TimeCheck.delete()`. They do **not** run when you call methods directly on a `DataTable` (for example, `tc.tasks.add(...)`) or when you edit TSV files on disk without reloading.
+
+### Trigger events
+
+Each table supports six hook points:
+
+| Event           | When it runs                          |
+|-----------------|---------------------------------------|
+| `before_add`    | Before a row is inserted              |
+| `after_add`     | After a row is inserted               |
+| `before_update` | Before a row is updated               |
+| `after_update`  | After a row is updated                |
+| `before_delete` | Before a row is deleted               |
+| `after_delete`  | After a row is deleted                |
+
+Built-in handlers are registered automatically when you create a `TimeCheck` instance.
+
+### Default behavior by table
+
+| Table       | Trigger        | What happens |
+|-------------|----------------|--------------|
+| `log`       | `after_add`    | Add session `total` to the matching task, project, and area; update the timesheet for that date if the area is in `timesheet_areas`; evaluate weekly hour alerts |
+| `log`       | `after_update` | Apply the difference in `total` to the same downstream tables; evaluate weekly hour alerts |
+| `log`       | `after_delete` | Subtract the session `total` from the same downstream tables; evaluate weekly hour alerts |
+| `tasks`     | `after_add`    | Increment the parent project's `#tasks` count |
+| `tasks`     | `after_delete` | Decrement the parent project's `#tasks` count |
+| `tasks`     | `after_update` | If `project` changes, adjust `#tasks` on old and new projects; if `time log` changes manually, propagate the delta to the project and area |
+| `projects`  | `after_update` | If `time log` changes manually, propagate the delta to the parent area |
+
+Task names in log entries must match a row in `tasks.tsv` for rollups to run. Unknown tasks are skipped silently.
+
+### Custom triggers
+
+Access the trigger registry on your `TimeCheck` instance via `tc._triggers`:
+
+```python
+def notify_on_complete(old_entry, new_entry):
+    if old_entry.get("status") != "Complete" and new_entry.get("status") == "Complete":
+        print(f"Finished: {new_entry['task']}")
+
+tc._triggers.add_trigger("tasks", "after_update", notify_on_complete)
+```
+
+Remove or clear hooks as needed:
+
+```python
+tc._triggers.remove_trigger("tasks", "after_update", notify_on_complete)
+tc._triggers.clear_triggers("tasks")  # removes all hooks for that table, including built-ins
+```
+
+## Metrics
+
+Use `tc.metrics` to retrieve time spent per task, project, or area. By default, metrics read the cumulative `time log` values stored on each table. Pass a date range to aggregate directly from `log.tsv` instead.
+
+```python
+from datetime import datetime
+
+# Cumulative totals (from table time logs)
+for task in tc.metrics.tasks():
+    print(task.name, task.time_log, task.project, task.area)
+
+for project in tc.metrics.projects(area="PhD"):
+    print(project.name, project.hours)
+
+for area in tc.metrics.areas():
+    print(area.name, area.time_log)
+
+# Single lookup
+metric = tc.metrics.task("Draft chapter 1 outline")
+project_metric = tc.metrics.project("Thesis Writing")
+area_metric = tc.metrics.area("PhD")
+
+# Date-range totals from the log
+start = datetime(2026, 6, 1)
+end = datetime(2026, 6, 13)
+june_tasks = tc.metrics.tasks(start=start, end=end)
+june_summary = tc.metrics.summary(start=start, end=end)
+
+# Rolling 7-day window ending on a reference date
+weekly = tc.metrics.weekly("6/13/2026")
+print(weekly["areas"])
+print(weekly["projects"])
+print(weekly["tasks"])
+```
+
+Each result is a `TimeMetric` with:
+
+| Field      | Description                              |
+|------------|------------------------------------------|
+| `name`     | Task, project, or area name              |
+| `seconds`  | Total time in seconds                    |
+| `time_log` | Formatted duration (`H:MM:SS`)           |
+| `hours`    | Total time as a decimal number           |
+| `project`  | Parent project (task metrics only)       |
+| `area`     | Parent area (task/project metrics)       |
+| `status`   | Row status when available                |
+| `extra`    | Additional fields such as hour limits    |
+
+## Alerts
+
+TimeCheck can raise alerts when rolling weekly hours exceed configured limits.
+
+### Threshold sources
+
+| Entity   | Limit column         | Alerts enabled when                    |
+|----------|----------------------|----------------------------------------|
+| `areas`  | `Max Weekly Hours`   | `Alert` is `TRUE` (or `YES` / `1`)     |
+| `projects` | `max weekly hours` | A positive limit is set                |
+
+Limits may be stored as plain hours (`8`, `0.5`) or durations (`28:00:00`). Weekly usage is calculated over a rolling 7-day window ending on the reference date.
+
+### Check alerts manually
+
+```python
+from timecheck import TimeCheck
+
+tc = TimeCheck()
+
+# Inspect without running handlers
+alerts = tc.check_alerts(reference="6/13/2026")
+for alert in alerts:
+    print(alert.level, alert.entity, alert.message)
+
+# Or dispatch registered handlers
+tc.check_alerts(reference="6/13/2026", dispatch=True)
+```
+
+Each `Alert` includes `level` (`warning` at 90% of limit, `critical` when exceeded), `entity_type` (`area` or `project`), `entity`, `message`, `current_hours`, `threshold_hours`, and `percent_of_threshold`.
+
+### Alert handlers
+
+Register callbacks on `tc.alerts` to respond when thresholds are crossed. Handlers run automatically after log entries are added, updated, or deleted.
+
+```python
+def on_alert(alert):
+    if alert.level == "critical":
+        print(f"Limit exceeded: {alert.message}")
+
+tc.alerts.add_handler(on_alert)
+
+tc.log_entry("Draft chapter 1 outline")  # handlers run if thresholds are crossed
+```
+
+You can also manage handlers directly:
+
+```python
+tc.alerts.add_handler(on_alert)
+tc.alerts.remove_handler(on_alert)
+tc.alerts.clear_handlers()
+```
+
+## Convenience properties
+
+The `TimeCheck` instance exposes each table directly:
+
+```python
+tc.areas
+tc.projects
+tc.tasks
+tc.log
+tc.timesheet
+tc.metrics
+tc.alerts
+```
+
+Each table property is a `DataTable` with `.df`, `.load()`, `.save()`, `.add()`, `.update()`, `.delete()`, `.get()`, and `.find()`. `tc.metrics` and `tc.alerts` are separate helpers for querying time totals and checking hour limits. Prefer `tc.add()`, `tc.update()`, and `tc.delete()` when you want triggers to run.
+
+## Full example: new user from scratch
+
+```python
+from datetime import datetime
+from pathlib import Path
+from timecheck import TimeCheck
+
+# 1. Create profile in a synced or local folder (registered for future sessions)
+tc = TimeCheck(
+    data_root=Path.home() / "OneDrive" / "TimeCheck",
+    name="Jordan",
+)
+
+# 2. Define areas
+for area, hours in [("PhD", "28"), ("Business", "8"), ("Personal", "4")]:
+    tc.add("areas", {
+        "area": area,
+        "time log": "0:00:00",
+        "Max Weekly Hours": hours,
+        "Alert": "FALSE",
+    })
+
+# 3. Add a project
+tc.add("projects", {
+    "project": "Side Project",
+    "time log": "0:00:00",
+    "max weekly hours": "5",
+    "due date": "12/31/2026",
+    "#tasks": "1",
+    "area": "Business",
+    "status": "In Progress",
+})
+
+# 4. Add a task
+tc.add("tasks", {
+    "task": "Set up repo",
+    "project": "Side Project",
+    "details": "Initialize git and README",
+    "priority": "1",
+    "time log": "0:00:00",
+    "status": "In Progress",
+    "Anticipated Time": "",
+    "start date": "6/13/2026",
+    "due date": "6/14/2026",
+    "point of contact": "",
+    "last update": "6/13/2026",
+    "completed on": "",
+})
+
+# 5. Enable timesheet rollups for selected areas
+tc.set_timesheet_areas(["Business", "PhD"])
+
+# 6. Log time (updates task, project, area, and timesheet via triggers)
+tc.log_entry(
+    "Set up repo",
+    start=datetime(2026, 6, 13, 14, 0),
+    stop=datetime(2026, 6, 13, 15, 0),
+    notes="Created project structure",
+)
+
+# 7. Persist
+tc.save()
+print(f"Profile ready for {tc.config['name']}")
+```
+
+## Editing files directly
+
+Because data is plain TSV, you can edit sheets in a spreadsheet app or text editor. Keep these rules in mind:
+
+- Do not rename header rows—the column names must match exactly.
+- Use tab characters as delimiters, not commas.
+- Primary keys (`area`, `project`, `task`, `Date`) must stay unique within their table.
+- Task names in `log.tsv` should match a row in `tasks.tsv` so rollups stay consistent.
+- Manual file edits bypass triggers. After editing TSV files directly, call `tc.load()` to refresh in-memory data; totals across tables may be out of sync until you reconcile them.
+- Use `tc.add()`, `tc.update()`, and `tc.delete()` (not `tc.<table>.add(...)`) when you want built-in rollups to run.
+- Keep personal TSV data out of public git repositories. Prefer a cloud-synced folder (see **Option 2** above) for backup across devices.
+
+## Project layout
+
+```
+TimeCheck/
+├── README.md
+├── src/
+│   ├── data/              # default profile data (TSV + config.json)
+│   └── timecheck/
+│       ├── __init__.py    # exports TimeCheck
+│       ├── timecheck.py   # main API
+│       ├── table.py       # CRUD for one TSV table
+│       ├── triggers.py    # trigger registry and default rollups
+│       ├── metrics.py     # time-spent metrics by task/project/area
+│       ├── alerts.py      # weekly hour threshold alerts
+│       ├── duration.py    # H:MM:SS parsing and arithmetic
+│       ├── registry.py    # column definitions and paths
+│       ├── profiles.py    # local user-to-data-directory registry
+│       └── file_loader.py # JSON/TSV load and save
+```
+
+The authoritative schema for each table is defined in `src/timecheck/registry.py`.
+
+## About this project
+
+This repo exists primarily as Jonah's personal **evaluation for AI coding agents**—a test of how quickly an agent can scaffold a small, generic tool from an existing spreadsheet-style workflow. He originally designed a Google Sheet to serve as a time-management tool, with the equivalent functionality as seen here (sans maybe alert events). 
+
+The trigger system, metrics API, alerts, duration utilities, and most of this README were implemented by **Composer** (Cursor's AI agent) in a single guided session, building on the author's original TSV schema, sample data, and crude python implementation (see details below). It works for real personal time tracking, but treat it as agent-assisted prototype code: there is no formal test suite, manual TSV edits can desync rollups, timesheet backfill is not automatic, and you should review the logic before relying on it for anything critical. 
+
+Jonah highly values transparency. As such, "crude python implementation" means he mocked up a basic implementation of a CRUD API (load, save, update, delete, etc.) for this project on his own, repurposing several already existing scripts across several different projects. Everything else in the `src/timecheck/` directory was implemented by **Composer**. 
