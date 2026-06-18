@@ -1,0 +1,79 @@
+TimeCheck Business Source License 1.0
+
+Copyright © 2026, Jonah Huggins
+
+Licensor: Jonah Huggins ("Licensor"), contact: JonahRileyHuggins@gmail.com
+
+This license ("License") grants rights in the TimeCheck software and associated
+source code (the "Code") under a business-source-style license that applies one
+set of terms and conditions (the "Pre-Change Terms") to the Code and all
+modified Code before a specified date (the "Change Date"), and another set of
+terms and conditions (the "Post-Change Terms") on and after the Change Date.
+The Change Date for this License is 01 January 2029.
+
+More about this License can be found by contacting the Licensor at
+JonahRileyHuggins@gmail.com.
+
+ A. Pre-Change Terms: License, before 01 January 2029:
+
+ Prior to the Change Date, you have the non-exclusive, worldwide rights under
+this License to copy, modify, display, use, and redistribute the Code solely
+under the following conditions:
+
+ You may use, copy, modify, create derivative works of, display, and
+ redistribute the Code only for the following non-commercial purposes:
+ (i) personal time tracking and productivity management; (ii) internal
+ evaluation, testing, and development within your organization, provided
+ that neither you nor any third party charges a fee for access to or use
+ of the Code or any derivative work; and (iii) non-commercial redistribution
+ of original or modified Code, provided that each recipient receives a copy
+ of this License with the Code. You may not use the Code or any derivative
+ work to offer or provide a commercial time-tracking, scheduling, workforce-
+ management, analytics, or software-as-a-service product or service; may not
+ sublicense, sell, lease, or otherwise grant paid access to the Code or any
+ derivative work; and may not use the Code in any manner that substitutes
+ for or competes with a commercial offering from the Licensor without first
+ obtaining a separate commercial license as described in Section A below.
+
+ All copies and uses of original and modified Code are also subject to this
+License. When copying or distributing original or modified Code, you must
+conspicuously and appropriately publish on each copy an appropriate copyright
+notice; keep intact all notices stating that this License applies to the
+original or modified Code; keep intact all notices of the absence of any
+warranty; and give all recipients a copy of this License along with the Code.
+
+ If your desired use of the Code or modified Code does not meet all of the
+above requirements, you MUST purchase a separate, commercial license for the
+Code prior to all conflicting installations or other uses of the Code. You can
+buy support/licenses from: Jonah Huggins at JonahRileyHuggins@gmail.com.
+
+ Any attempt to use the Code outside the permitted scope of the Pre-Change
+Terms will automatically terminate your rights under this License to this and
+all future versions of the Code.
+
+ TO THE EXTENT PERMITTED BY APPLICABLE LAW, THE CODE OR ANY SERVICES OR WORK
+PRODUCT PROVIDED UNDER OR IN CONNECTION WITH THIS LICENSE ARE PROVIDED ON
+AN "AS IS" BASIS. YOU EXPRESSLY WAIVE ALL WARRANTIES, WHETHER EXPRESS OR
+IMPLIED, INCLUDING (WITHOUT LIMITATION) WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, SYSTEM INTEGRATION, AND ACCURACY OF
+INFORMATIONAL CONTENT.
+
+ On the Change Date, the Pre-Change Terms shall automatically terminate and
+shall be replaced with the Post-Change Terms described in Section B, below.
+
+ B. Post-Change Terms: License after, and including, 01 January 2029:
+
+ On and after the Change Date, the software code is licensed to you pursuant to
+version 2 or later of the GNU General Public License, as follows:
+
+ This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation; version 2 or later of the License.
+
+ This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License along with
+this program; if not, write to the Free Software Foundation, Inc., 59 Temple
+Place, Suite 330, Boston, MA 02111-1307 USA.

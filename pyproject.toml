@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "TimeCheck"
+version = "0.1.0"
+description = "A basic time management tool"
+readme = "README.md"
+requires-python = ">=3.10"
+
+authors = [
+    { name = "Jonah Huggins", email = "JonahRileyHuggins@gmail.com" }
+]
+
+license = { file = "BSL.txt" }
+
+#[project.urls]
+#"Commercial License" = "mailto:JonahRileyHuggins@gmail.com"
+
+dependencies = [
+	"pandas==2.3.1",
+
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
