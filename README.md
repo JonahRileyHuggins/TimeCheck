@@ -718,7 +718,7 @@ The authoritative schema for each table is defined in `src/timecheck/registry.py
 
 ## About this project
 
-This repo exists primarily as Jonah's personal **evaluation for AI coding agents**—a test of how quickly an agent can scaffold a small, generic tool from an existing spreadsheet-style workflow. He originally designed a Google Sheet to serve as a time-management tool, with the equivalent functionality as seen here (sans maybe alert events). 
+This repo exists primarily as Jonah's personal **evaluation for AI coding agents**; a test of how quickly an agent can scaffold a small, generic tool from an existing spreadsheet-style workflow. He originally designed a [Google Sheet](https://docs.google.com/spreadsheets/d/1Tlhj378cqieScJ_cXmFGz7GoQKWdbP_mkyMPY1mJUAA/edit?gid=1078918295#gid=1078918295) to serve as a time-management tool, with the equivalent functionality as seen here (sans maybe alert events). 
 
 The trigger system, metrics API, alerts, duration utilities, and most of this README were implemented by **Composer** (Cursor's AI agent) in a single guided session, building on the author's original TSV schema, sample data, and crude python implementation (see details below). It works for real personal time tracking, but treat it as agent-assisted prototype code: there is no formal test suite, manual TSV edits can desync rollups, timesheet backfill is not automatic, and you should review the logic before relying on it for anything critical. 
 
