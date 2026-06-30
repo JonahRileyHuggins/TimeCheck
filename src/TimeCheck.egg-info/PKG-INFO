@@ -301,7 +301,6 @@ tc.add("tasks", {
     "priority": "1",
     "time log": "0:00:00",
     "status": "Not Started",
-    "Anticipated Time": "",
     "start date": "6/13/2026",
     "due date": "6/20/2026",
     "point of contact": "",
@@ -312,7 +311,7 @@ tc.add("tasks", {
 tc.save("tasks")
 ```
 
-**Columns:** `task`, `project`, `details`, `priority`, `time log`, `status`, `Anticipated Time`, `start date`, `due date`, `point of contact`, `last update`, `completed on`
+**Columns:** `task`, `project`, `details`, `priority`, `time log`, `status`, `start date`, `due date`, `point of contact`, `last update`, `completed on`
 
 The `task` name is the primary key. The `project` field should match an existing row in `projects.tsv`.
 
@@ -746,7 +745,6 @@ tc.add("tasks", {
     "priority": "1",
     "time log": "0:00:00",
     "status": "In Progress",
-    "Anticipated Time": "",
     "start date": "6/13/2026",
     "due date": "6/14/2026",
     "point of contact": "",

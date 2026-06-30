@@ -46,7 +46,6 @@ TABLES = {
             "priority",
             "time log",
             "status",
-            "Anticipated Time",
             "start date",
             "due date",
             "point of contact",

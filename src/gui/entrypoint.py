@@ -394,7 +394,6 @@ class TimeCheckGUI:
                     "priority": "1",
                     "time log": "0:00:00",
                     "status": self.new_task_status.get(),
-                    "Anticipated Time": "",
                     "start date": today,
                     "due date": "",
                     "point of contact": "",
