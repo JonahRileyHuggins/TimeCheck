@@ -251,7 +251,7 @@ class TimeCheck:
                 row.get("Total Work Hours", "0:00:00") or "0:00:00"
             )
             new_row["7-Day Total"] = str(row.get("7-Day Total", "") or "")
-            new_row["Day of week"] = str(row.get("Day of week", "") or "")
+            new_row["Day"] = str(row.get("Day", "") or "")
             rows.append(new_row)
 
         path = str(table_path("timesheet", self.data_root))

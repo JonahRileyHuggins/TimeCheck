@@ -4,8 +4,11 @@ pyproject.toml
 src/TimeCheck.egg-info/PKG-INFO
 src/TimeCheck.egg-info/SOURCES.txt
 src/TimeCheck.egg-info/dependency_links.txt
+src/TimeCheck.egg-info/entry_points.txt
 src/TimeCheck.egg-info/requires.txt
 src/TimeCheck.egg-info/top_level.txt
+src/gui/__init__.py
+src/gui/_test_me.py
 src/gui/entrypoint.py
 src/timecheck/__init__.py
 src/timecheck/alerts.py
@@ -14,6 +17,7 @@ src/timecheck/file_loader.py
 src/timecheck/metrics.py
 src/timecheck/profiles.py
 src/timecheck/registry.py
+src/timecheck/sheets.py
 src/timecheck/table.py
 src/timecheck/timecheck.py
 src/timecheck/triggers.py

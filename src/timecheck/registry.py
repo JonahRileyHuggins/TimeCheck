@@ -110,7 +110,7 @@ TABLES = {
             "Business time",
             "Total Work Hours",
             "7-Day Total",
-            "Day of week",
+            "Day",
         ],
         "triggers": {
             "before_add": [],
@@ -127,7 +127,7 @@ TABLES = {
 def timesheet_columns(areas: list[str]) -> list[str]:
     columns = ["Date"]
     columns.extend(f"{area} time" for area in areas)
-    columns.extend(["Total Work Hours", "7-Day Total", "Day of week"])
+    columns.extend(["Total Work Hours", "7-Day Total", "Day"])
     return columns
 
 

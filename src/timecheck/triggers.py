@@ -198,7 +198,7 @@ def _ensure_timesheet_row(tc: TimeCheck, date: str) -> int:
 
     entry: dict[str, str] = {column: "" for column in tc.timesheet.columns}
     entry["Date"] = date
-    entry["Day of week"] = day_of_week(date)
+    entry["Day"] = day_of_week(date)
     for area in _timesheet_areas(tc):
         entry[f"{area} time"] = "0:00:00"
     entry["Total Work Hours"] = "0:00:00"
