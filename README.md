@@ -315,6 +315,83 @@ tc.add("timesheet", {
 })
 ```
 
+## Graphical interface (GUI)
+
+TimeCheck includes a basic **Tkinter** desktop app that mirrors the tab layout of the [original Google Sheet](https://docs.google.com/spreadsheets/d/1Tlhj378cqieScJ_cXmFGz7GoQKWdbP_mkyMPY1mJUAA/edit): **Daily**, **Tasks**, **Projects**, **Areas**, **TimeSheet**, plus a **Summary** tab for weekly metrics and alerts.
+
+| GUI tab   | Google Sheet tab | Purpose |
+|-----------|------------------|---------|
+| Daily     | Daily            | Log time and notes; view recent log rows |
+| Tasks     | Tasks            | Add tasks; view task time totals |
+| Projects  | Projects         | Add projects; view project rollups |
+| Areas     | Areas            | Add areas and alert thresholds |
+| TimeSheet | TimeSheet        | View daily rollups; choose which areas to track |
+| Summary   | —                | Weekly hours by area and active limit alerts |
+
+### GUI requirements
+
+- Python 3.10+, pandas, and **Tkinter** (on Linux: `sudo apt install python3-tk`)
+- **openpyxl** (optional, for Google Sheet import): `pip install openpyxl` or `pip install -e ".[import]"`
+
+### Launch the GUI
+
+After `pip install -e .` from the project root:
+
+```bash
+timecheck-gui
+timecheck-gui --name Jonah
+```
+
+Without installing:
+
+```powershell
+# Windows PowerShell
+cd TimeCheck
+$env:PYTHONPATH = "src"
+python -m gui.entrypoint --name Jonah
+```
+
+```bash
+# macOS / Linux
+PYTHONPATH=src python -m gui.entrypoint --name Jonah
+```
+
+The status bar shows your profile name and data folder.
+
+### Log a time entry (Daily tab)
+
+1. Open **Daily**.
+2. Select a **Task**.
+3. Enter **Minutes** worked.
+4. Add optional **Notes** for this session.
+5. Click **Log Entry**.
+
+### Set up from the GUI
+
+1. **Areas** — add categories and optional weekly limits.
+2. **Projects** — assign each project to an area.
+3. **Tasks** — assign each task to a project.
+4. **TimeSheet** — **Configure Timesheet Areas...** picks daily rollup columns.
+5. **Daily** — log time.
+
+### Import from Google Sheets
+
+1. In Google Sheets: **File → Download → Microsoft Excel (.xlsx)**.
+2. In the GUI: **File → Import Google Sheet (.xlsx)...**
+3. Confirm when prompted.
+
+Expected tabs: `Daily`, `Tasks`, `Projects`, `Areas`, `TimeSheet`.
+
+### GUI troubleshooting
+
+| Issue | What to do |
+|-------|------------|
+| `No module named 'timecheck'` | Set `PYTHONPATH=src` or `pip install -e .` |
+| `No module named 'tkinter'` | Install Tk (e.g. `python3-tk`) |
+| Empty dropdowns | Add areas and projects first |
+| Import fails | Install `openpyxl`; verify tab/column names |
+| Wrong data folder | Register your profile (see **Create your profile**) |
+
 ## Reading and updating data
 
 ### Load tables
@@ -631,6 +708,9 @@ TimeCheck/
 │       ├── duration.py    # H:MM:SS parsing and arithmetic
 │       ├── registry.py    # column definitions and paths
 │       ├── profiles.py    # local user-to-data-directory registry
+│       ├── sheets.py      # Google Sheet tab mapping and .xlsx import
+│       ├── gui/
+│       │   └── entrypoint.py  # Tkinter desktop app
 │       └── file_loader.py # JSON/TSV load and save
 ```
 
